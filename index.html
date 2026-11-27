@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="得物利润">
+<meta name="theme-color" content="#f5f6f7">
+<title>得物利润计算器</title>
+<style>
+  :root{
+    --bg:#f5f6f7; --card:#fff; --text:#1f1f1f; --muted:#6b6b6b;
+    --line:#e6e8ea; --green:#1a7f37; --red:#c62828; --amber:#b26a00;
+    --brand:#2e7d32;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    -webkit-text-size-adjust:100%}
+  body{padding:max(14px,env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));}
+  h1{font-size:20px;margin:6px 0 2px}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .field:last-child{margin-bottom:0}
+  .field label{font-size:12.5px;color:var(--muted)}
+  .field input{
+    font-size:22px;font-weight:600;padding:12px 14px;border:1.5px solid var(--line);
+    border-radius:11px;background:#fbfbfc;color:var(--text);width:100%;outline:none;
+    -webkit-appearance:none;appearance:none;
+  }
+  .field input:focus{border-color:var(--brand);background:#fff}
+  .netcard{background:linear-gradient(180deg,#f2fbf4,#eaf6ec);border-color:#cfe9d4}
+  .netlabel{font-size:13px;color:var(--muted)}
+  .net{font-size:44px;font-weight:800;line-height:1.15;margin:2px 0 2px;letter-spacing:-1px}
+  .nethint{font-size:12.5px;color:var(--muted)}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid #f1f3f4}
+  .row:last-child{border-bottom:0}
+  .row .k{font-size:13.5px;color:var(--muted)}
+  .row .v{font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .row.total .k{color:var(--text);font-weight:600}
+  .row.total .v{font-size:17px}
+  .sep{height:1px;background:var(--line);margin:4px 0}
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:0 14px}
+  details summary{padding:13px 0;font-size:13.5px;color:var(--muted);cursor:pointer;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"›";float:right;transition:transform .2s}
+  details[open] summary::after{transform:rotate(90deg)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:14px}
+  .grid2 .field{margin-bottom:0}
+  .grid2 input{font-size:16px;padding:10px 12px}
+  .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:1px solid var(--line);
+    background:#fff;font-size:13.5px;color:var(--text);cursor:pointer}
+  .btn:active{background:#eef0f1}
+  .foot{color:#a5a5a5;font-size:11px;text-align:center;margin-top:10px;line-height:1.6}
+  .neg{color:var(--red)} .pos{color:var(--green)} .thin{color:var(--amber)}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+</head>
+<body>
+
+<h1>得物利润计算器</h1>
+<p class="sub">填售价、拿货价、运费，实时算净利润（含四项费用）</p>
+
+<div class="card">
+  <div class="field">
+    <label for="price">得物售价（元）</label>
+    <input id="price" type="text" inputmode="decimal" placeholder="例如 588" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="cost">拿货价（元）</label>
+    <input id="cost" type="text" inputmode="decimal" placeholder="例如 468" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="ship">运费（元）</label>
+    <input id="ship" type="text" inputmode="decimal" value="10" autocomplete="off">
+  </div>
+</div>
+
+<div class="card netcard">
+  <div class="netlabel">净利润</div>
+  <div class="net" id="net">—</div>
+  <div class="nethint" id="nethint">填上面两个价格就能算</div>
+</div>
+
+<div class="card" id="detail">
+  <div class="row"><span class="k">商品价格</span><span class="v" id="v-price">—</span></div>
+  <div class="row"><span class="k">技术服务费 <span id="v-techrate"></span></span><span class="v" id="v-tech">—</span></div>
+  <div class="row"><span class="k">转账手续费 <span id="v-transrate"></span></span><span class="v" id="v-trans">—</span></div>
+  <div class="row"><span class="k">操作服务费</span><span class="v" id="v-op">—</span></div>
+  <div class="row"><span class="k">售后无忧服务费 <span id="v-afterrate"></span></span><span class="v" id="v-after">—</span></div>
+  <div class="sep"></div>
+  <div class="row total"><span class="k">预计收入</span><span class="v" id="v-income">—</span></div>
+  <div class="row"><span class="k">拿货价</span><span class="v" id="v-cost">—</span></div>
+  <div class="row"><span class="k">运费</span><span class="v" id="v-ship">—</span></div>
+  <div class="sep"></div>
+  <div class="row total"><span class="k">保本售价</span><span class="v" id="v-breakeven">—</span></div>
+  <div class="row"><span class="k">净利率</span><span class="v" id="v-margin">—</span></div>
+</div>
+
+<details id="feepanel">
+  <summary>费率设置（技术费按类目 1%–10%）</summary>
+  <div class="grid2">
+    <div class="field"><label for="f-tech">技术服务费 %</label><input id="f-tech" type="text" inputmode="decimal" value="10"></div>
+    <div class="field"><label for="f-trans">转账手续费 %</label><input id="f-trans" type="text" inputmode="decimal" value="1"></div>
+    <div class="field"><label for="f-after">售后无忧 %</label><input id="f-after" type="text" inputmode="decimal" value="1.5"></div>
+    <div class="field"><label for="f-op">操作服务费 元/单</label><input id="f-op" type="text" inputmode="decimal" value="38"></div>
+  </div>
+  <div style="padding-bottom:14px"><span class="btn" id="reset">恢复默认</span></div>
+</details>
+
+<p class="foot">费用口径：技术服务费(类目费率) + 转账 1% + 操作服务费 38 元/单 + 售后无忧 1.5%<br>数据只存在本机，不会上传</p>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var DEFAULT = {tech:10, trans:1, after:1.5, op:38};
+  var KEY = 'dewu_calc_v1';
+
+  function num(v){
+    if (v === null || v === undefined) return null;
+    v = String(v).replace(/[¥,\s]/g,'');
+    if (v === '') return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+  function money(n){ return (n<0?'-':'') + '¥' + Math.abs(n).toFixed(2); }
+  function pct(n){ return n.toFixed(n % 1 === 0 ? 0 : 1) + '%'; }
+
+  function fees(){
+    return {
+      tech: (num($('f-tech').value) || 0) / 100,
+      trans: (num($('f-trans').value) || 0) / 100,
+      after: (num($('f-after').value) || 0) / 100,
+      op: num($('f-op').value) || 0
+    };
+  }
+
+  function calc(){
+    var p = num($('price').value), c = num($('cost').value), s = num($('ship').value);
+    if (s === null) s = 10;
+    var f = fees();
+
+    $('v-techrate').textContent = '(' + pct(f.tech*100) + ')';
+    $('v-transrate').textContent = '(' + pct(f.trans*100) + ')';
+    $('v-afterrate').textContent = '(' + pct(f.after*100) + ')';
+
+    if (p === null || c === null){
+      $('net').textContent = '—';
+      $('net').className = 'net';
+      $('nethint').textContent = '填「得物售价」和「拿货价」就能算';
+      ['v-price','v-tech','v-trans','v-op','v-after','v-income','v-cost','v-ship','v-breakeven','v-margin']
+        .forEach(function(id){ $(id).textContent = '—'; });
+      return;
+    }
+
+    var tech = p * f.tech, trans = p * f.trans, after = p * f.after;
+    var fee = tech + trans + f.op + after;
+    var income = p - fee;
+    var net = income - c - s;
+    var rate = f.tech + f.trans + f.after;
+    var breakeven = rate < 1 ? (c + s + f.op) / (1 - rate) : 0;
+    var margin = p > 0 ? (net / p) * 100 : 0;
+
+    $('net').textContent = money(net);
+    $('net').className = 'net ' + (net >= 30 ? 'pos' : (net >= 0 ? 'thin' : 'neg'));
+    $('nethint').textContent = net >= 30 ? '这单利润不错' :
+      (net >= 0 ? '能赚，但比较薄' : '按这个价卖会亏 ' + money(-net));
+
+    $('v-price').textContent = money(p);
+    $('v-tech').textContent = '-' + money(tech).replace('-','');
+    $('v-trans').textContent = '-' + money(trans).replace('-','');
+    $('v-op').textContent = '-' + money(f.op).replace('-','');
+    $('v-after').textContent = '-' + money(after).replace('-','');
+    $('v-income').textContent = money(income);
+    $('v-cost').textContent = '-' + money(c).replace('-','');
+    $('v-ship').textContent = '-' + money(s).replace('-','');
+    $('v-breakeven').textContent = money(breakeven) + '（低于它必亏）';
+    $('v-margin').textContent = (margin>=0?'':'') + margin.toFixed(1) + '%';
+
+    save();
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify({
+        price:$('price').value, cost:$('cost').value, ship:$('ship').value,
+        tech:$('f-tech').value, trans:$('f-trans').value,
+        after:$('f-after').value, op:$('f-op').value
+      }));
+    }catch(e){}
+  }
+
+  function load(){
+    try{
+      var d = JSON.parse(localStorage.getItem(KEY) || '{}');
+      if (d.price !== undefined) $('price').value = d.price;
+      if (d.cost !== undefined) $('cost').value = d.cost;
+      if (d.ship !== undefined) $('ship').value = d.ship;
+      $('f-tech').value = d.tech !== undefined ? d.tech : DEFAULT.tech;
+      $('f-trans').value = d.trans !== undefined ? d.trans : DEFAULT.trans;
+      $('f-after').value = d.after !== undefined ? d.after : DEFAULT.after;
+      $('f-op').value = d.op !== undefined ? d.op : DEFAULT.op;
+    }catch(e){}
+  }
+
+  ['price','cost','ship','f-tech','f-trans','f-after','f-op'].forEach(function(id){
+    var el = $(id);
+    el.addEventListener('input', calc);
+    el.addEventListener('change', calc);
+    el.addEventListener('focus', function(){ setTimeout(function(){ el.select && el.select(); }, 30); });
+  });
+
+  $('reset').addEventListener('click', function(){
+    $('f-tech').value = DEFAULT.tech;
+    $('f-trans').value = DEFAULT.trans;
+    $('f-after').value = DEFAULT.after;
+    $('f-op').value = DEFAULT.op;
+    calc();
+  });
+
+  load();
+  calc();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
